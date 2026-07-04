@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>提交记录 - 管理</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<%- include('partials/nav', { navTitle: '周报管理后台', activeNav: 'submissions', adminNav: true }) %>
+
+<div class="container">
+  <% if (flash) { %>
+    <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+  <% } %>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>查询条件</h2>
+    </div>
+    <div class="card-body">
+      <form method="GET" action="/admin/submissions" class="form-grid">
+        <div class="form-group">
+          <label>选择日期（周一日期）</label>
+          <input type="date" name="week" value="<%= week %>">
+        </div>
+        <div class="form-group">
+          <label>员工（可选）</label>
+          <select name="user_id">
+            <option value="">全部员工</option>
+            <% users.forEach(function(u) { %>
+              <option value="<%= u.id %>" <%= String(u.id) === String(user_id) ? 'selected' : '' %>><%= u.name %>（<%= u.username %>）</option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary">查询</button>
+          <a href="/admin/submissions" class="btn btn-secondary">重置</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>周 <%= week %> 的提交</h2>
+    </div>
+    <div class="card-body">
+      <% if (rows.length === 0) { %>
+        <div class="empty-state">没有员工记录</div>
+      <% } %>
+      <% rows.forEach(function(r) { %>
+        <div class="user-submission">
+          <h3><%= r.user.name %> <small style="color:#888">@<%= r.user.username %></small></h3>
+          <div class="submission-grid">
+            <div class="sub-col">
+              <h4>📌 本周工作</h4>
+              <% if (r.thisItems.length === 0) { %>
+                <div class="status-missing">未提交</div>
+              <% } else { %>
+                <ul class="items-list">
+                  <% r.thisItems.forEach(function(it, i) { %>
+                    <li>
+                      <span class="item-index"><%= i + 1 %></span>
+                      <% if (it.project_name) { %><strong>[<%= it.project_name %>]</strong> <% } %>
+                      <%= it.content %>
+                    </li>
+                  <% }); %>
+                </ul>
+              <% } %>
+            </div>
+            <div class="sub-col">
+              <h4>🎯 下周计划</h4>
+              <% if (r.nextItems.length === 0) { %>
+                <div class="status-missing">未提交</div>
+              <% } else { %>
+                <ul class="items-list">
+                  <% r.nextItems.forEach(function(it, i) { %>
+                    <li>
+                      <span class="item-index"><%= i + 1 %></span>
+                      <% if (it.project_name) { %><strong>[<%= it.project_name %>]</strong> <% } %>
+                      <%= it.content %>
+                    </li>
+                  <% }); %>
+                </ul>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

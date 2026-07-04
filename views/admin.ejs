@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 - 周报</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<%- include('partials/nav', { navTitle: '周报管理后台', activeNav: 'overview', adminNav: true }) %>
+
+<div class="container">
+  <% if (flash) { %>
+    <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+  <% } %>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num"><%= stats.total %></div>
+      <div class="stat-label">员工总数</div>
+    </div>
+    <div class="stat-card stat-success">
+      <div class="stat-num"><%= stats.thisWeekSubmitted %> / <%= stats.total %></div>
+      <div class="stat-label">本周工作已填写</div>
+    </div>
+    <div class="stat-card stat-warn">
+      <div class="stat-num"><%= stats.thisWeekMissing %></div>
+      <div class="stat-label">本周未填写</div>
+    </div>
+    <div class="stat-card stat-info">
+      <div class="stat-num"><%= stats.nextWeekSubmitted %> / <%= stats.total %></div>
+      <div class="stat-label">下周计划已填写</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>本周期（<%= thisMonday %> 至 <%= weekEnd %>）填写情况</h2>
+      <div class="header-actions">
+        <% if (report) { %>
+          <button type="button" class="btn btn-secondary" onclick="showSavedReport()">查看已生成</button>
+          <button type="button" class="btn btn-primary" onclick="exportWeekly(true)">重新生成</button>
+        <% } else { %>
+          <button type="button" class="btn btn-primary" onclick="exportWeekly(false)">🤖 AI 生成两张表</button>
+        <% } %>
+      </div>
+    </div>
+    <div class="card-body">
+      <table class="data-table submissions-table">
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>本周工作</th>
+            <th>下周计划</th>
+            <th>状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach(function(r) { %>
+            <tr>
+              <td><strong><%= r.user_name %></strong></td>
+              <td>
+                <% if (r.thisSubmitted && r.thisItems.length > 0) { %>
+                  <span class="status-submitted">✓ 已填写（<%= r.thisItems.length %>条）</span>
+                  <details>
+                    <summary>查看</summary>
+                    <ul class="items-list">
+                      <% r.thisItems.forEach(function(it) { %>
+                        <li>
+                          <% if (it.project_name) { %><strong>[<%= it.project_name %>]</strong> <% } %>
+                          <%= it.content %>
+                        </li>
+                      <% }); %>
+                    </ul>
+                  </details>
+                <% } else if (r.thisSubmitted) { %>
+                  <span class="status-submitted-empty">已保存（无内容）</span>
+                <% } else { %>
+                  <span class="status-missing">✗ 未填写</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (r.nextSubmitted && r.nextItems.length > 0) { %>
+                  <span class="status-submitted">✓ 已填写（<%= r.nextItems.length %>条）</span>
+                  <details>
+                    <summary>查看</summary>
+                    <ul class="items-list">
+                      <% r.nextItems.forEach(function(it) { %>
+                        <li>
+                          <% if (it.project_name) { %><strong>[<%= it.project_name %>]</strong> <% } %>
+                          <%= it.content %>
+                        </li>
+                      <% }); %>
+                    </ul>
+                  </details>
+                <% } else if (r.nextSubmitted) { %>
+                  <span class="status-submitted-empty">已保存（无内容）</span>
+                <% } else { %>
+                  <span class="status-missing">✗ 未填写</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (r.thisSubmitted && r.nextSubmitted) { %>
+                  <span class="tag tag-success">全部已填写</span>
+                <% } else if (r.thisSubmitted || r.nextSubmitted) { %>
+                  <span class="tag tag-warn">部分已填写</span>
+                <% } else { %>
+                  <span class="tag tag-danger">未填写</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>查看历史周</h2>
+    </div>
+    <div class="card-body">
+      <form method="GET" action="/admin/week/" onsubmit="return selectWeek(this, event)" class="form-inline">
+        <label>选择周的周一日期：</label>
+        <input type="date" name="weekStart" required>
+        <button type="submit" class="btn btn-primary">查看</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- AI 生成弹窗 -->
+<div id="ai-modal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>🤖 AI 生成周报表</h2>
+      <button type="button" class="btn-icon" onclick="document.getElementById('ai-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="ai-loading" style="display:none">
+        <div class="loading">⏳ AI 正在汇总并生成文件，请稍候...</div>
+      </div>
+      <div id="ai-result"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="copyResult()">📋 复制汇总内容</button>
+      <button type="button" class="btn btn-secondary" onclick="exportWeekly(true)">重新生成</button>
+      <button type="button" class="btn btn-primary" onclick="document.getElementById('ai-modal').style.display='none'">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let savedReport = <%- JSON.stringify(report || null) %>;
+
+function selectWeek(form, e) {
+  e.preventDefault();
+  const val = form.weekStart.value;
+  if (val) location.href = '/admin/week/' + val;
+  return false;
+}
+
+function showSavedReport() {
+  if (!savedReport) return;
+  exportWeekly(false);
+}
+
+async function exportWeekly(regenerate) {
+  const modal = document.getElementById('ai-modal');
+  const result = document.getElementById('ai-result');
+  const loading = document.getElementById('ai-loading');
+  result.innerHTML = '';
+  loading.style.display = 'block';
+  modal.style.display = 'flex';
+
+  try {
+    const resp = await fetch('/admin/export-weekly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ week_start: '<%= thisMonday %>', regenerate: !!regenerate }),
+    });
+    const data = await resp.json();
+    loading.style.display = 'none';
+    if (data.ok) {
+      savedReport = data.report || data;
+      openReportModal(savedReport, data.fromCache);
+    } else {
+      result.innerHTML = '<div class="alert alert-error">' + escapeHtml(data.error) + '</div>';
+    }
+  } catch (err) {
+    loading.style.display = 'none';
+    result.innerHTML = '<div class="alert alert-error">请求失败：' + err.message + '</div>';
+  }
+}
+
+function openReportModal(report, fromCache) {
+  const result = document.getElementById('ai-result');
+  const loading = document.getElementById('ai-loading');
+  loading.style.display = 'none';
+  const fileLinks = (report.files || []).map(file => {
+    return '<a class="btn btn-secondary" href="' + file.url + '">' + escapeHtml(file.filename) + '</a>';
+  }).join('');
+  const summaryText = buildSummaryText(report.summary);
+  const meta = [report.weekRange, report.providerName && report.model ? (report.providerName + ' / ' + report.model) : '', report.generatedAt ? ('生成时间：' + report.generatedAt) : '']
+    .filter(Boolean)
+    .join('　');
+  result.innerHTML = ''
+    + '<div class="export-result">'
+    + '<div class="alert alert-success">' + (fromCache ? '已生成，可直接查看和下载' : '已重新生成并保存') + '</div>'
+    + '<div class="hint-text" style="margin-bottom:10px">' + escapeHtml(meta) + '</div>'
+    + '<div class="export-links">' + fileLinks + '</div>'
+    + '<pre id="ai-text">' + escapeHtml(summaryText) + '</pre>'
+    + '</div>';
+}
+
+function buildSummaryText(summary) {
+  const thisWeek = (summary && summary.thisWeek) || [];
+  const nextWeek = (summary && summary.nextWeek) || [];
+  return formatNarrative('本周项目开展方面', thisWeek) + '\n\n' + formatNarrative('下周项目开展方面', nextWeek);
+}
+
+function formatNarrative(title, lines) {
+  const ordinals = ['一是', '二是', '三是', '四是', '五是', '六是', '七是', '八是', '九是', '十是', '十一是', '十二是', '十三是', '十四是', '十五是', '十六是', '十七是', '十八是', '十九是', '二十是'];
+  const cleaned = (lines || []).map(cleanSummaryLine).filter(Boolean);
+  if (!cleaned.length) return title + '，无。';
+  return title + '，' + cleaned.map((line, i) => (ordinals[i] || ((i + 1) + '是')) + line).join('；') + '。';
+}
+
+function cleanSummaryLine(line) {
+  return String(line || '')
+    .replace(/^(?:本周|下周)?项目开展方面[，,:：]?\s*/, '')
+    .replace(/^(?:一是|二是|三是|四是|五是|六是|七是|八是|九是|十是|十一是|十二是|十三是|十四是|十五是|十六是|十七是|十八是|十九是|二十是)\s*/, '')
+    .replace(/^\[([^\]]+)\]\s*/, '$1，')
+    .replace(/[；;]{2,}/g, '；')
+    .replace(/[。．.]{2,}/g, '。')
+    .replace(/[；;。.\s]+$/g, '')
+    .trim();
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function copyResult() {
+  const text = document.getElementById('ai-text');
+  if (!text) return;
+  navigator.clipboard.writeText(text.textContent).then(() => {
+    alert('已复制');
+  });
+}
+</script>
+</body>
+</html>

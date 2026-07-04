@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的周报</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<%- include('partials/nav', {
+  navTitle: user.role === 'admin' ? '周报管理后台' : '周报系统',
+  activeNav: 'dashboard',
+  adminNav: user.role === 'admin'
+}) %>
+
+<div class="container">
+  <% if (flash) { %>
+    <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+  <% } %>
+
+  <div class="cycle-header">
+    <h2>本周期（<%= weekStart %> 至 <%= weekEnd %>）</h2>
+    <p class="cycle-hint">本周工作 + 下周计划属于同一个报告周期；当前周期可查看和修改，历史周期仅可查看。</p>
+  </div>
+
+  <div class="cycle-body">
+    <form method="POST" action="/submit-cycle" id="cycle-form" class="cycle-form">
+      <input type="hidden" name="week_start" value="<%= weekStart %>">
+      <div class="cycle-grid">
+      <!-- 本周工作 -->
+      <div class="card">
+        <div class="card-header">
+          <h2>本周工作</h2>
+          <span class="badge <%= canEditCycle ? 'badge-success' : 'badge-disabled' %>">
+            <%= canEditCycle ? '● 可编辑' : '● 只读' %>
+          </span>
+        </div>
+        <div class="card-body">
+          <% if (!canEditCycle) { %>
+            <div class="alert alert-warning">该周期已归档，仅可查看，不能修改。</div>
+          <% } %>
+
+          <div id="this-week-items" class="work-items">
+            <% thisWeek.forEach(function(it, i) { %>
+              <div class="work-item">
+                <div class="work-item-header">
+                  <span class="item-num"><%= i + 1 %></span>
+                  <% if (canEditCycle) { %>
+                    <button type="button" class="btn-icon btn-remove" onclick="removeItem(this)">✕</button>
+                  <% } %>
+                </div>
+                <input type="text" name="this_items[<%= i %>][project_name]" placeholder="项目名称（可留空）" value="<%= it.project_name %>" <%= !canEditCycle ? 'readonly' : '' %>>
+                <textarea name="this_items[<%= i %>][content]" placeholder="工作内容..." rows="2" <%= !canEditCycle ? 'readonly' : '' %>><%= it.content %></textarea>
+              </div>
+            <% }); %>
+            <% if (thisWeek.length === 0) { %>
+              <div class="empty-state">本周还没有填写内容</div>
+            <% } %>
+          </div>
+
+          <% if (canEditCycle) { %>
+            <button type="button" class="btn btn-secondary" onclick="addItem('this-week-items', 'this')">+ 添加一条工作</button>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- 下周计划 -->
+      <div class="card">
+        <div class="card-header">
+          <h2>下周计划</h2>
+          <span class="badge <%= canEditCycle ? 'badge-success' : 'badge-disabled' %>">
+            <%= canEditCycle ? '● 可编辑' : '● 只读' %>
+          </span>
+        </div>
+        <div class="card-body">
+          <% if (!canEditCycle) { %>
+            <div class="alert alert-warning">该周期已归档，仅可查看，不能修改。</div>
+          <% } %>
+
+          <div id="next-week-items" class="work-items">
+            <% nextWeek.forEach(function(it, i) { %>
+              <div class="work-item">
+                <div class="work-item-header">
+                  <span class="item-num"><%= i + 1 %></span>
+                  <% if (canEditCycle) { %>
+                    <button type="button" class="btn-icon btn-remove" onclick="removeItem(this)">✕</button>
+                  <% } %>
+                </div>
+                <input type="text" name="next_items[<%= i %>][project_name]" placeholder="项目名称（可留空）" value="<%= it.project_name %>" <%= !canEditCycle ? 'readonly' : '' %>>
+                <textarea name="next_items[<%= i %>][content]" placeholder="工作内容..." rows="2" <%= !canEditCycle ? 'readonly' : '' %>><%= it.content %></textarea>
+              </div>
+            <% }); %>
+            <% if (nextWeek.length === 0) { %>
+              <div class="empty-state">下周还没有填写计划</div>
+            <% } %>
+          </div>
+
+          <% if (canEditCycle) { %>
+            <button type="button" class="btn btn-secondary" onclick="addItem('next-week-items', 'next')">+ 添加一条计划</button>
+          <% } %>
+        </div>
+      </div>
+      </div>
+
+      <% if (canEditCycle) { %>
+      <div class="form-actions" style="margin-top:8px">
+        <button type="submit" class="btn btn-primary">保存本周期全部内容</button>
+      </div>
+      <% } %>
+    </form>
+  </div>
+
+  <% if (history.length > 1) { %>
+  <div class="card" style="margin-top:24px">
+    <div class="card-header">
+      <h2>历史记录</h2>
+    </div>
+    <div class="card-body">
+      <table class="data-table">
+        <thead>
+          <tr><th>周期</th><th>本周工作</th><th>下周计划</th><th>更新时间</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          <% history.slice(0, 20).forEach(function(h) { %>
+            <% if (h.week_start !== weekStart) { %>
+            <tr>
+              <td><%= h.week_start %></td>
+              <td><%= h.this_count || 0 %> 条</td>
+              <td><%= h.next_count || 0 %> 条</td>
+              <td><%= h.updated_at %></td>
+              <td><button type="button" class="btn btn-secondary" onclick="viewHistory('<%= h.week_start %>')">查看</button></td>
+            </tr>
+            <% } %>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+</div>
+
+<div id="history-modal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="history-title">历史周期</h2>
+      <button type="button" class="btn-icon" onclick="document.getElementById('history-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="submission-grid">
+        <div class="sub-col">
+          <h4>本周工作</h4>
+          <ul id="history-this" class="items-list"></ul>
+        </div>
+        <div class="sub-col">
+          <h4>下周计划</h4>
+          <ul id="history-next" class="items-list"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" onclick="document.getElementById('history-modal').style.display='none'">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function addItem(containerId, prefix) {
+  const container = document.getElementById(containerId);
+  const empty = container.querySelector('.empty-state');
+  if (empty) empty.remove();
+
+  const count = container.querySelectorAll('.work-item').length;
+
+  const div = document.createElement('div');
+  div.className = 'work-item';
+  div.innerHTML = `
+    <div class="work-item-header">
+      <span class="item-num">${count + 1}</span>
+      <button type="button" class="btn-icon btn-remove" onclick="removeItem(this)">✕</button>
+    </div>
+    <input type="text" name="${prefix}_items[${count}][project_name]" placeholder="项目名称（可留空）">
+    <textarea name="${prefix}_items[${count}][content]" placeholder="工作内容..." rows="2"></textarea>
+  `;
+  container.appendChild(div);
+}
+
+function removeItem(btn) {
+  const item = btn.closest('.work-item');
+  const container = item.parentElement;
+  item.remove();
+  renumber(container);
+  if (container.querySelectorAll('.work-item').length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = container.id === 'this-week-items' ? '本周还没有填写内容' : '下周还没有填写计划';
+    container.appendChild(empty);
+  }
+}
+
+function renumber(container) {
+  container.querySelectorAll('.work-item').forEach((item, i) => {
+    const num = item.querySelector('.item-num');
+    if (num) num.textContent = i + 1;
+
+    item.querySelectorAll('[name]').forEach(el => {
+      el.name = el.name.replace(/\[\d+\]/, `[${i}]`);
+    });
+  });
+}
+
+async function viewHistory(weekStart) {
+  const modal = document.getElementById('history-modal');
+  const title = document.getElementById('history-title');
+  const thisList = document.getElementById('history-this');
+  const nextList = document.getElementById('history-next');
+  title.textContent = '历史周期（' + weekStart + '）';
+  thisList.innerHTML = '<li>加载中...</li>';
+  nextList.innerHTML = '<li>加载中...</li>';
+  modal.style.display = 'flex';
+
+  try {
+    const resp = await fetch('/history/' + encodeURIComponent(weekStart));
+    const data = await resp.json();
+    renderHistoryList(thisList, (data.items || []).filter(item => item.week_type === 'this_week'));
+    renderHistoryList(nextList, (data.items || []).filter(item => item.week_type === 'next_week'));
+  } catch (err) {
+    thisList.innerHTML = '<li>读取失败：' + escapeHtml(err.message) + '</li>';
+    nextList.innerHTML = '';
+  }
+}
+
+function renderHistoryList(list, items) {
+  if (!items.length) {
+    list.innerHTML = '<li>无内容</li>';
+    return;
+  }
+  list.innerHTML = items.map((item, index) => {
+    const project = item.project_name ? '<strong>[' + escapeHtml(item.project_name) + ']</strong> ' : '';
+    return '<li><span class="item-index">' + (index + 1) + '</span>' + project + escapeHtml(item.content) + '</li>';
+  }).join('');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>

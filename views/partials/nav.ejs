@@ -1,0 +1,47 @@
+<%
+  const currentUser = typeof user !== 'undefined' ? user : null;
+  const isAdminNav = typeof adminNav !== 'undefined' ? adminNav : false;
+  const currentActive = typeof activeNav !== 'undefined' ? activeNav : '';
+  const titleText = typeof navTitle !== 'undefined' ? navTitle : '周报系统';
+  const returnHref = typeof backHref !== 'undefined' ? backHref : '';
+  const showMainNav = typeof hideMainNav === 'undefined' ? true : !hideMainNav;
+  const currentIsSuperAdmin = !!(currentUser && (currentUser.isSuperAdmin || currentUser.username === 'admin'));
+%>
+<nav class="navbar <%= isAdminNav ? 'navbar-admin' : '' %>">
+  <div class="nav-container">
+    <span class="logo"><%= titleText %></span>
+    <div class="nav-right">
+      <% if (returnHref) { %>
+        <a href="<%= returnHref %>" class="nav-link">返回</a>
+      <% } %>
+
+      <% if (showMainNav && currentUser && currentUser.role === 'admin') { %>
+        <% if (!currentIsSuperAdmin) { %>
+          <a href="/dashboard" class="nav-link <%= currentActive === 'dashboard' ? 'active' : '' %>">我的周报</a>
+        <% } %>
+        <a href="/admin" class="nav-link <%= currentActive === 'overview' ? 'active' : '' %>">本周概览</a>
+        <a href="/admin/submissions" class="nav-link <%= currentActive === 'submissions' ? 'active' : '' %>">提交记录</a>
+        <% if (currentIsSuperAdmin) { %>
+          <a href="/admin/users" class="nav-link <%= currentActive === 'users' ? 'active' : '' %>">用户管理</a>
+          <a href="/admin/settings" class="nav-link <%= currentActive === 'settings' ? 'active' : '' %>">系统设置</a>
+        <% } %>
+      <% } %>
+
+      <% if (currentUser) { %>
+        <details class="user-menu">
+          <summary><span class="user-name"><%= currentUser.name %></span></summary>
+          <div class="user-menu-panel">
+            <% if (!currentIsSuperAdmin) { %>
+              <a href="/account">账号设置</a>
+            <% } %>
+            <form method="POST" action="/logout">
+              <button type="submit">退出登录</button>
+            </form>
+          </div>
+        </details>
+      <% } else { %>
+        <a href="/login" class="nav-link">返回登录</a>
+      <% } %>
+    </div>
+  </div>
+</nav>

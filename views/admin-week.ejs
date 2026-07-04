@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>历史周 - 周报管理</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<%- include('partials/nav', { navTitle: '周报管理后台', activeNav: 'overview', adminNav: true }) %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2>历史周期 <%= thisMonday %> 至 <%= weekEnd %></h2>
+      <a href="/admin" class="btn btn-secondary">返回本周</a>
+    </div>
+    <div class="card-body">
+      <table class="data-table submissions-table">
+        <thead>
+          <tr><th>姓名</th><th>本周工作</th><th>下周计划</th></tr>
+        </thead>
+        <tbody>
+          <% rows.forEach(function(r) { %>
+            <tr>
+              <td><strong><%= r.user_name %></strong></td>
+              <td>
+                <% if (r.thisItems.length > 0) { %>
+                  <ul class="items-list">
+                    <% r.thisItems.forEach(function(it) { %>
+                      <li><% if (it.project_name) { %><strong>[<%= it.project_name %>]</strong> <% } %><%= it.content %></li>
+                    <% }); %>
+                  </ul>
+                <% } else { %>
+                  <span class="status-missing">未填写</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (r.nextItems.length > 0) { %>
+                  <ul class="items-list">
+                    <% r.nextItems.forEach(function(it) { %>
+                      <li><% if (it.project_name) { %><strong>[<%= it.project_name %>]</strong> <% } %><%= it.content %></li>
+                    <% }); %>
+                  </ul>
+                <% } else { %>
+                  <span class="status-missing">未填写</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

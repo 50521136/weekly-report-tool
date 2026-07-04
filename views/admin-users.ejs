@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户管理</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<%- include('partials/nav', { navTitle: '周报管理后台', activeNav: 'users', adminNav: true }) %>
+
+<div class="container">
+  <% if (flash) { %>
+    <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+  <% } %>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>添加用户</h2>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="/admin/users/create" class="form-grid">
+        <div class="form-group">
+          <label>账号（登录名）</label>
+          <input type="text" name="username" required>
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="text" name="password" required placeholder="至少 6 位">
+        </div>
+        <div class="form-group">
+          <label>姓名</label>
+          <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+          <label>角色</label>
+          <select name="role">
+            <option value="user">普通成员</option>
+            <option value="admin">管理员</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column: span 1">
+          <button type="submit" class="btn btn-primary">添加</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>用户列表（<%= users.length %>）</h2>
+    </div>
+    <div class="card-body">
+      <table class="data-table">
+        <thead>
+          <tr><th>序号</th><th>账号</th><th>姓名</th><th>邮箱</th><th>角色</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          <% users.forEach(function(u, i) { %>
+            <tr>
+              <td><%= i + 1 %></td>
+              <td><%= u.username %></td>
+              <td><%= u.name %></td>
+              <td><%= u.email || '-' %></td>
+              <td>
+                <% if (u.username === 'admin') { %>
+                  <span class="tag tag-info">最高管理员</span>
+                <% } else { %>
+                  <form method="POST" action="/admin/users/update-role" class="role-form">
+                    <input type="hidden" name="user_id" value="<%= u.id %>">
+                    <select name="role" onchange="this.form.submit()">
+                      <option value="user" <%= u.role === 'user' ? 'selected' : '' %>>普通成员</option>
+                      <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>管理员</option>
+                    </select>
+                  </form>
+                <% } %>
+              </td>
+              <td>
+                <% if (u.must_change_password) { %>
+                  <span class="tag tag-warn">需改密</span>
+                <% } else { %>
+                  <span class="tag tag-success">正常</span>
+                <% } %>
+              </td>
+              <td><%= u.created_at %></td>
+              <td class="actions">
+                <button type="button" class="btn btn-text" onclick="showReset(<%= u.id %>, '<%= u.username %>')">重置密码</button>
+                <% if (u.id !== user.id && u.username !== 'admin') { %>
+                  <form method="POST" action="/admin/users/delete" style="display:inline" onsubmit="return confirm('确定删除？')">
+                    <input type="hidden" name="user_id" value="<%= u.id %>">
+                    <button type="submit" class="btn btn-text btn-danger">删除</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 重置密码弹窗 -->
+<div id="reset-modal" class="modal" style="display:none">
+  <div class="modal-content modal-small">
+    <div class="modal-header">
+      <h3>重置密码</h3>
+      <button type="button" class="btn-icon" onclick="document.getElementById('reset-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <form method="POST" action="/admin/users/reset-password" id="reset-form">
+        <input type="hidden" name="user_id" id="reset-uid">
+        <div class="form-group">
+          <label>新密码（<span id="reset-uname"></span>）</label>
+          <input type="text" name="password" required minlength="6" placeholder="至少 6 位">
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('reset-modal').style.display='none'">取消</button>
+          <button type="submit" class="btn btn-primary">确定重置</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function showReset(id, username) {
+  document.getElementById('reset-uid').value = id;
+  document.getElementById('reset-uname').textContent = username;
+  document.getElementById('reset-modal').style.display = 'flex';
+}
+</script>
+</body>
+</html>
