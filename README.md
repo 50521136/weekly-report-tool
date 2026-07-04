@@ -37,7 +37,7 @@ npm start
 
 ## Docker 使用
 
-项目支持两种 Docker 使用方式：本地构建镜像，或使用 GitHub Actions 云端构建后的 GHCR 镜像。
+项目支持三种 Docker 使用方式：本地构建镜像、使用 GitHub Actions 云端构建后的 GHCR 镜像，或发布到 Docker Hub 后直接拉取。
 
 ### 方式一：本地构建运行
 
@@ -85,6 +85,47 @@ docker compose -f docker-compose.cloud.yml up -d
 docker login ghcr.io
 ```
 
+### 方式三：发布到 Docker Hub 后运行
+
+GitHub Actions 也支持在云端构建完成后同步推送到 Docker Hub。需要先在 GitHub 仓库的 `Settings -> Secrets and variables -> Actions` 中添加：
+
+```text
+DOCKERHUB_USERNAME = 你的 Docker Hub 用户名
+DOCKERHUB_TOKEN    = Docker Hub Access Token
+```
+
+可选添加仓库变量：
+
+```text
+DOCKERHUB_REPOSITORY = weekly-report-tool
+```
+
+配置完成后，推送 `main` 分支或手动运行 Actions，镜像会发布为：
+
+```text
+你的DockerHub用户名/weekly-report-tool:latest
+```
+
+服务器使用 Docker Hub 镜像运行：
+
+```bash
+copy .env.example .env
+docker compose -f docker-compose.dockerhub.yml pull
+docker compose -f docker-compose.dockerhub.yml up -d
+```
+
+如果 Docker Hub 用户名不是 `50521136`，请在 `.env` 里修改：
+
+```env
+DOCKERHUB_IMAGE=你的DockerHub用户名/weekly-report-tool:latest
+```
+
+Docker 面板里直接拉取时，镜像地址填写：
+
+```text
+你的DockerHub用户名/weekly-report-tool:latest
+```
+
 ### 常用 Docker 命令
 
 ```bash
@@ -100,6 +141,10 @@ docker compose down
 # 使用云端镜像更新到最新版
 docker compose -f docker-compose.cloud.yml pull
 docker compose -f docker-compose.cloud.yml up -d
+
+# 使用 Docker Hub 镜像更新到最新版
+docker compose -f docker-compose.dockerhub.yml pull
+docker compose -f docker-compose.dockerhub.yml up -d
 ```
 
 ## 配置说明

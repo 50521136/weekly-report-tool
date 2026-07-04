@@ -1,0 +1,18 @@
+services:
+  weekly-report-tool:
+    image: ${DOCKERHUB_IMAGE:-50521136/weekly-report-tool:latest}
+    container_name: weekly-report-tool
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+      APP_TIME_ZONE: Asia/Shanghai
+      TZ: Asia/Shanghai
+    ports:
+      - "${HOST_PORT:-3000}:3000"
+    volumes:
+      - weekly-report-data:/app/data
+
+volumes:
+  weekly-report-data:
