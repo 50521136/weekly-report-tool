@@ -140,6 +140,36 @@ Docker 面板里直接拉取时，镜像地址填写：
 lz0423/weekly-report-tool:latest
 ```
 
+### Docker 镜像版本标签
+
+镜像会同时发布稳定版本标签和 `latest`：
+
+```text
+lz0423/weekly-report-tool:0.1.0
+lz0423/weekly-report-tool:0.1
+lz0423/weekly-report-tool:v0.1.0
+lz0423/weekly-report-tool:latest
+```
+
+建议生产环境使用固定版本，例如：
+
+```text
+lz0423/weekly-report-tool:0.1.0
+```
+
+如果想始终使用最新版本，再使用：
+
+```text
+lz0423/weekly-report-tool:latest
+```
+
+发布新版本时，在 Git 里打标签即可触发云端构建。例如：
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
 ### 常用 Docker 命令
 
 ```bash
