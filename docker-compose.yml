@@ -1,0 +1,21 @@
+services:
+  weekly-report-tool:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: weekly-report-tool:local
+    container_name: weekly-report-tool
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+      APP_TIME_ZONE: Asia/Shanghai
+      TZ: Asia/Shanghai
+    ports:
+      - "${HOST_PORT:-3000}:3000"
+    volumes:
+      - weekly-report-data:/app/data
+
+volumes:
+  weekly-report-data:
