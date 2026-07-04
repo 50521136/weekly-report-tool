@@ -22,9 +22,7 @@ WORKDIR /app
 
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates tini tzdata \
-  && rm -rf /var/lib/apt/lists/* \
-  && groupadd --system app \
-  && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app
+  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY package*.json ./
@@ -36,10 +34,7 @@ COPY services ./services
 COPY templates ./templates
 COPY views ./views
 
-RUN mkdir -p /app/data/exports \
-  && chown -R app:app /app
-
-USER app
+RUN mkdir -p /app/data/exports
 
 EXPOSE 3000
 VOLUME ["/app/data"]

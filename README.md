@@ -63,6 +63,14 @@ docker compose up -d --build
 
 数据会保存在 Docker 卷 `weekly-report-data` 中，对应容器内 `/app/data`，包括 SQLite 数据库和导出文件。
 
+如果使用 NAS 面板或手写 `docker run` 绑定宿主机目录，请把宿主机目录挂载到 `/app/data`。例如：
+
+```bash
+docker run -d --name weekly-report-tool --restart unless-stopped -p 3000:3000 --env-file "$(pwd)/.env" -v "$(pwd)/data:/app/data" ghcr.io/50521136/weekly-report-tool:latest
+```
+
+如果日志出现 `SQLITE_CANTOPEN: unable to open database file`，通常是宿主机 `data` 目录不可写。新版镜像默认以 root 运行，已兼容大多数 NAS 面板；旧镜像可临时加 `--user 0` 或放开 `data` 目录写权限。
+
 ### 方式二：使用云端构建镜像运行
 
 GitHub Actions 会在推送 `main` 分支或打 `v*` 标签时自动构建镜像，并推送到 GitHub Container Registry：
