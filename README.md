@@ -114,16 +114,22 @@ docker compose -f docker-compose.dockerhub.yml pull
 docker compose -f docker-compose.dockerhub.yml up -d
 ```
 
-如果 Docker Hub 用户名不是 `50521136`，请在 `.env` 里修改：
+默认 Docker Hub 镜像地址：
+
+```text
+lz0423/weekly-report-tool:latest
+```
+
+如果 Docker Hub 用户名或仓库名发生变化，请在 `.env` 里修改：
 
 ```env
-DOCKERHUB_IMAGE=你的DockerHub用户名/weekly-report-tool:latest
+DOCKERHUB_IMAGE=lz0423/weekly-report-tool:latest
 ```
 
 Docker 面板里直接拉取时，镜像地址填写：
 
 ```text
-你的DockerHub用户名/weekly-report-tool:latest
+lz0423/weekly-report-tool:latest
 ```
 
 ### 常用 Docker 命令
