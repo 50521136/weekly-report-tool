@@ -1,6 +1,6 @@
 {
   "name": "weekly-report-tool",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "周报收集工具",
   "main": "server.js",
   "scripts": {

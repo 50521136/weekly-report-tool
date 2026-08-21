@@ -49,6 +49,7 @@ function itemText(item) {
 
 const PROJECT_SIMILARITY_THRESHOLD = 0.8;
 const ORDINAL_PREFIX = /^(?:一是|二是|三是|四是|五是|六是|七是|八是|九是|十是|十一是|十二是|十三是|十四是|十五是|十六是|十七是|十八是|十九是|二十是)\s*/;
+const ORDINAL_GLOBAL = /(?:一是|二是|三是|四是|五是|六是|七是|八是|九是|十是|十一是|十二是|十三是|十四是|十五是|十六是|十七是|十八是|十九是|二十是)\s*/g;
 
 function cleanProjectTitle(project) {
   return String(project || '')
@@ -157,9 +158,35 @@ function stripProjectPrefix(content, project) {
   return text;
 }
 
+// 把“1. 2. 3.”“一是/二是/三是”等枚举标记统一整理为“；”分隔的短语
+function mergeEnumerationMarks(text) {
+  return String(text || '')
+    .replace(/(?:^|[\s；;、，,])(?:[-•●])\s*/g, '；')
+    .replace(/(?:^|[\s；;、，,])\d+[、)）]\s*/g, '；')
+    .replace(/(?:^|[\s；;、，,])\d+．\s*/g, '；')
+    .replace(/(?:^|[\s；;、，,])\d+\.(?=\s|$)/g, '；')
+    .replace(ORDINAL_GLOBAL, '')
+    .replace(/^[；;、，,\s]+/, '')
+    .replace(/[；;]\s*[，,]/g, '；')
+    .replace(/[，,]\s*[；;]/g, '；')
+    .replace(/[；;][；;]+/g, '；')
+    .replace(/([；;])[ \t　]+/g, '$1')
+    .replace(/[，,][，,]+/g, '，')
+    .replace(/[；;，,]+$/g, '')
+    .trim();
+}
+
 function cleanWorkContent(content, project) {
-  return stripProjectPrefix(content, project)
-    .replace(ORDINAL_PREFIX, '')
+  let text = mergeEnumerationMarks(stripProjectPrefix(content, project));
+  const title = cleanProjectTitle(project);
+  if (title) {
+    // 删除内容小项里重复出现的项目名（例如“2. 九江…项目画施工草图”），只处理片段开头
+    text = text.replace(
+      new RegExp(`(^|[；;、，,])\\s*(?:持续)?(?:推进|开展|完成|实施|配合|协助)?\\s*${escapeRegExp(title)}`, 'g'),
+      '$1'
+    );
+  }
+  return text
     .replace(/^[，,:：；;\s]+/, '')
     .replace(/[；;。.\s]+$/g, '')
     .trim();
