@@ -220,10 +220,9 @@ function buildSummaryText(summary) {
 }
 
 function formatNarrative(title, lines) {
-  const ordinals = ['一是', '二是', '三是', '四是', '五是', '六是', '七是', '八是', '九是', '十是', '十一是', '十二是', '十三是', '十四是', '十五是', '十六是', '十七是', '十八是', '十九是', '二十是'];
   const cleaned = (lines || []).map(cleanSummaryLine).filter(Boolean);
   if (!cleaned.length) return title + '，无。';
-  return title + '，' + cleaned.map((line, i) => (ordinals[i] || ((i + 1) + '是')) + line).join('；') + '。';
+  return title + '\n' + cleaned.map((line, i) => (i + 1) + '. ' + line + '。').join('\n');
 }
 
 function cleanSummaryLine(line) {
