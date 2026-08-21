@@ -164,7 +164,7 @@ function mergeEnumerationMarks(text) {
     .replace(/(?:^|[\s；;、，,])(?:[-•●])\s*/g, '；')
     .replace(/(?:^|[\s；;、，,])\d+[、)）]\s*/g, '；')
     .replace(/(?:^|[\s；;、，,])\d+．\s*/g, '；')
-    .replace(/(?:^|[\s；;、，,])\d+\.(?=\s|$)/g, '；')
+    .replace(/(?:^|[\s；;、，,])\d+\.(?=\D|$)/g, '；')
     .replace(ORDINAL_GLOBAL, '')
     .replace(/^[；;、，,\s]+/, '')
     .replace(/[；;]\s*[，,]/g, '；')
@@ -291,6 +291,31 @@ function stripOrdinalText(line) {
     .trim();
 }
 
+// 一条内容里若夹带了其他源项目的“；”片段，拆出来归到对应项目
+function addProjectGroupWithSplit(groups, loose, project, content, sourceProjects) {
+  const segments = String(content || '')
+    .split(/[；;]/)
+    .map(seg => seg.trim())
+    .filter(Boolean);
+
+  const own = [];
+  segments.forEach(seg => {
+    const other = (sourceProjects || []).find(sp => {
+      if (!sp.project || projectSimilarity(sp.project, project) >= PROJECT_SIMILARITY_THRESHOLD) return false;
+      const norm = normalizeProjectName(seg);
+      return Boolean(norm && norm.includes(sp.normalized));
+    });
+
+    if (other) {
+      addProjectGroup(groups, loose, other.project, seg);
+    } else {
+      own.push(seg);
+    }
+  });
+
+  addProjectGroup(groups, loose, project, own.join('；'));
+}
+
 function compactSummaryLines(aiLines, sourceItems) {
   const sourceLines = fallbackSourceLines(sourceItems);
   const cleaned = normalizeLines(aiLines).map(stripOrdinalText).filter(Boolean);
@@ -316,13 +341,13 @@ function compactSummaryLines(aiLines, sourceItems) {
     if (parsed.project) {
       const sourceProject = sourceProjects.find(p => projectSimilarity(p.project, parsed.project) >= PROJECT_SIMILARITY_THRESHOLD);
       const project = sourceProject ? sourceProject.project : parsed.project;
-      addProjectGroup(grouped, loose, project, parsed.content);
+      addProjectGroupWithSplit(grouped, loose, project, parsed.content, sourceProjects);
       return;
     }
 
     const matchedProject = findProjectMention(line, sourceProjects);
     if (matchedProject) {
-      addProjectGroup(grouped, loose, matchedProject.project, stripProjectPrefix(line, matchedProject.project));
+      addProjectGroupWithSplit(grouped, loose, matchedProject.project, stripProjectPrefix(line, matchedProject.project), sourceProjects);
     } else {
       loose.push(line);
     }
