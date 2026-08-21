@@ -206,13 +206,36 @@ function uniqueContents(contents, project) {
   return unique;
 }
 
+// 把多个工作内容拼成一段流水句：“A，B，并C”
+function joinProjectSegments(segments) {
+  const list = segments.filter(Boolean);
+  if (!list.length) return '';
+  if (list.length === 1) return list[0];
+  const last = list[list.length - 1];
+  const connector = /^(?:并|同时|且|另)/.test(last) ? '' : '并';
+  return `${list.slice(0, -1).join('，')}，${connector}${last}`;
+}
+
 function formatProjectLine(project, contents) {
   const title = cleanProjectTitle(project);
   const unique = uniqueContents(contents, title);
-  const body = unique.join('；')
-    .replace(/[；;]{2,}/g, '；')
-    .replace(/[。．.]{2,}/g, '。')
-    .replace(/[；;。.\s]+$/g, '');
+  const seen = new Set();
+  const segments = [];
+  unique.forEach(text => {
+    String(text || '').split(/[；;]/).forEach(seg => {
+      const s = String(seg || '').replace(/^[，,、\s]+/, '').replace(/[，,、。．.\s]+$/g, '').trim();
+      if (!s) return;
+      const key = s.replace(/[，,；;、。．.\s]/g, '');
+      if (seen.has(key)) return;
+      seen.add(key);
+      segments.push(s);
+    });
+  });
+  const body = joinProjectSegments(segments)
+    .replace(/[，,][，,]+/g, '，')
+    .replace(/[，,]*[；;]+\s*[，,]*/g, '，')
+    .replace(/[；;。.\s]+$/g, '')
+    .trim();
   if (!title) return body;
   return body ? `${title}，${body}` : title;
 }
